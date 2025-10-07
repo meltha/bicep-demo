@@ -1,4 +1,4 @@
-name: Deploy to Azure Web App (Linux)
+name: Deploy to Azure Web App (Linux via OIDC)
 
 on:
   push:
@@ -6,14 +6,16 @@ on:
   workflow_dispatch:
 
 env:
-  APP_NAME: playground-web-lnx10930
+  AZURE_WEBAPP_NAME: playground-web-lnx10930
+  AZURE_RESOURCE_GROUP: playground-rg-central
+  PACKAGE_PATH: webapp/app.zip
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: webapp
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -22,16 +24,27 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install deps
-        run: npm ci
+      - name: Install dependencies
+        run: |
+          cd webapp
+          npm ci
 
-      - name: Zip app (exclude node_modules)
-        run: zip -r app.zip . -x "node_modules/*" ".git/*"
+      - name: Zip app
+        run: |
+          cd webapp
+          zip -r ../app.zip . -x "node_modules/*" ".git/*"
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
         with:
-          app-name: ${{ env.APP_NAME }}
-          slot-name: production
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
-          package: webapp/app.zip
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy using Azure CLI
+        run: |
+          az webapp deploy \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
+            --type zip \
+            --src-path "$PACKAGE_PATH"
