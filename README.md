@@ -112,6 +112,50 @@ Expected result:
 
 ---
 
+## Future Work
+
+**1) Staging slot (zero‑downtime deploys)**
+- Create a slot that clones prod config, deploy to the slot, warm it up, then swap.
+- Why: safer releases; quick rollback via swap.
+```bash
+az webapp deployment slot create -g $RG -n $APP --slot staging --configuration-source $APP
+az webapp deploy -g $RG -n $APP --slot staging --type zip --src-path ../app.zip
+curl -I https://$APP-staging.azurewebsites.net/health
+az webapp deployment slot swap -g $RG -n $APP --slot staging --action swap
+```
+
+**2) GitHub Actions CI/CD (OIDC, no secrets)**
+- Use federated credentials so Actions can deploy with `az webapp deploy` without storing publish profiles.
+- Why: least-privilege, secretless pipeline, auditable.
+```yaml
+# .github/workflows/deploy.yml (sketch)
+name: deploy
+on: { push: { branches: [main] } }
+jobs:
+  webapp:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - run: |
+          cd webapp
+          zip -r ../app.zip .
+          az webapp deploy -g $RG -n $APP --type zip --src-path ../app.zip
+```
+
+**3) Add a data tier (Azure SQL)**
+- Provision Azure SQL + database in Bicep; store ADO connection string in Key Vault; app reads it via app settings (no secrets in code).
+- Why: shows real PaaS stack: App Service + SQL + KV + Insights; aligns with AZ‑204 objectives.
+
+---
+
 ## Cleanup
 
 To avoid incurring charges, remove all deployed resources:
