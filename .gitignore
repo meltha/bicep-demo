@@ -1,18 +1,4 @@
-# Node
-node_modules/
-npm-debug.log*
-yarn.lock
-pnpm-lock.yaml
-
-# Build/deploy artifacts
-app.zip
-*.zip
-*.tgz
-
-# Local env
-.env
 .DS_Store
-
-# Azure publish files
-*.pubxml
-*.PublishSettings
+node_modules/
+*.zip
+webapp/node_modules/
