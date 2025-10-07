@@ -1,4 +1,11 @@
 # Azure App Service (Linux) + Key Vault + App Insights — Node/Express
+## Project Overview
+
+This repo deploys a small **Node/Express** API to **Azure App Service (Linux, NODE|20-lts)** with:
+- **Key Vault** reference for a storage connection string (no secrets in code)
+- **Application Insights** telemetry (requests + a `/diag` custom event)
+- **Operational hardening**: HTTPS-only, TLS 1.2, HTTP/2, Always On, `/health` probe
+Deploy is a **zip push**; verify with `/health`, `/` (masked secret), and `/diag`.
 ## Prerequisites
 
 - Azure CLI 2.62+  
