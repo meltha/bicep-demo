@@ -14,6 +14,10 @@ if (aiConn) {
     .setSendLiveMetrics(true)
     .start();
 
+  if (appInsights.defaultClient) {
+    appInsights.defaultClient.config.samplingPercentage = 100;
+  }
+
   // Emit one explicit event at startup so we can verify ingestion
   if (appInsights.defaultClient) {
     appInsights.defaultClient.trackEvent({ name: 'ManualStartupTest' });
@@ -49,6 +53,23 @@ app.get('/diag', (_req, res) => {
       ai.defaultClient.trackEvent({ name: 'DiagPing' });
       ai.defaultClient.flush();
       return res.json({ ok: true, sent: 'DiagPing' });
+    }
+    return res.status(500).json({ ok: false, error: 'no defaultClient' });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+app.get('/diag/trace', (_req, res) => {
+  try {
+    if (appInsights.defaultClient) {
+      appInsights.defaultClient.trackTrace({
+        message: 'manual-trace',
+        severity: 1,
+        properties: { source: 'diag-endpoint' }
+      });
+      appInsights.defaultClient.flush();
+      return res.json({ ok: true, sent: 'manual-trace' });
     }
     return res.status(500).json({ ok: false, error: 'no defaultClient' });
   } catch (e) {
