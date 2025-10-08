@@ -39,6 +39,8 @@ app.use((req, _res, next) => {
 app.get('/', (_req, res) => {
   res.json({
     ok: true,
+    env: 'staging',
+    deployedAt: new Date().toISOString(),
     message: 'App Service + Key Vault demo',
     storageConnMasked: storageConn.substring(0, 20) + '...'
   });
