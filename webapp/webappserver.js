@@ -41,7 +41,7 @@ app.get('/', (_req, res) => {
     ok: true,
     env: 'staging',
     deployedAt: new Date().toISOString(),
-    message: 'App Service + Key Vault demo',
+    message: 'Deployed via CI/CD',
     storageConnMasked: storageConn.substring(0, 20) + '...'
   });
 });
