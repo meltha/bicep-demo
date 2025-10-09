@@ -41,7 +41,7 @@ app.get('/', (_req, res) => {
     ok: true,
     env: 'staging',
     deployedAt: new Date().toISOString(),
-    message: 'Deployed via CI/CD',
+    message: 'CI redeploy test 20:13:45Z',
     storageConnMasked: storageConn.substring(0, 20) + '...'
   });
 });
@@ -66,7 +66,7 @@ app.get('/diag/trace', (_req, res) => {
   try {
     if (appInsights.defaultClient) {
       appInsights.defaultClient.trackTrace({
-        message: 'manual-trace',
+        message: 'CI redeploy test 20:13:45Z',
         severity: 1,
         properties: { source: 'diag-endpoint' }
       });
