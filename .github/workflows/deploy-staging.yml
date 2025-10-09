@@ -3,6 +3,9 @@ name: Deploy to Azure Web App (staging)
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/deploy-staging.yml'
 
 env:
   AZURE_WEBAPP_NAME: playground-web-dev-wiehcnax
@@ -11,6 +14,9 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,3 +43,7 @@ jobs:
           slot-name: ${{ env.AZURE_WEBAPP_SLOT }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: app.zip
+
+      - name: Smoke test (health)
+        run: |
+          curl -fsS "https://${{ env.AZURE_WEBAPP_NAME }}-${{ env.AZURE_WEBAPP_SLOT }}.azurewebsites.net/health"
