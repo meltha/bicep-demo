@@ -1,0 +1,39 @@
+name: Deploy to Azure Web App (staging)
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AZURE_WEBAPP_NAME: playground-web-dev-wiehcnax
+  AZURE_WEBAPP_SLOT: staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        working-directory: webapp
+        run: npm ci
+
+      - name: Package app
+        run: |
+          cd webapp
+          zip -r ../app.zip . -x ".git/*" "node_modules/*"
+          ls -lh ../app.zip
+
+      - name: Deploy to staging slot
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: ${{ env.AZURE_WEBAPP_SLOT }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: app.zip
