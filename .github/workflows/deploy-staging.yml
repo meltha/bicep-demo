@@ -35,7 +35,7 @@ jobs:
       - name: Package app
         run: |
           cd webapp
-          zip -r ../app.zip . -x ".git/*" "node_modules/*"
+          zip -r ../app.zip . -x ".git/*"
           ls -lh ../app.zip
 
       - name: Upload artifact
@@ -76,7 +76,7 @@ jobs:
           KUDU_PWD: ${{ steps.kudu.outputs.kudu_pwd }}
         run: |
           echo "Deploying to: $KUDU_URL"
-          curl -fSL -u "$KUDU_USER:$KUDU_PWD" \
+          curl -fsSL -u "$KUDU_USER:$KUDU_PWD" \
             -H "Content-Type: application/zip" \
             --data-binary @app.zip \
             "$KUDU_URL"
