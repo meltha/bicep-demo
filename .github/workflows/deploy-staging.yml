@@ -47,7 +47,8 @@ jobs:
       - name: Check package exists
         run: ls -lh app.zip
 
-      - name: Deploy to staging via Kudu ZipDeploy (publish profile)
+      - name: Extract Kudu ZipDeploy creds
+        id: kudu
         env:
           PUBLISH_XML: ${{ secrets.AZURE_STAGING_PUBLISH_PROFILE }}
         run: |
@@ -61,12 +62,19 @@ jobs:
           pwd = prof.get('userPWD')
           host = re.sub(r':443$', '', url)
           kudu = f"https://{host}/api/zipdeploy?isAsync=true"
-          with open(os.environ['GITHUB_ENV'], 'a') as f:
-              f.write(f"KUDU_URL={kudu}\n")
-              f.write(f"KUDU_USER={user}\n")
-              f.write(f"KUDU_PWD={pwd}\n")
+          out = os.environ['GITHUB_OUTPUT']
+          with open(out, 'a') as f:
+              f.write(f"kudu_url={kudu}\n")
+              f.write(f"kudu_user={user}\n")
+              f.write(f"kudu_pwd={pwd}\n")
           PY
 
+      - name: Deploy to staging via Kudu ZipDeploy (publish profile)
+        env:
+          KUDU_URL: ${{ steps.kudu.outputs.kudu_url }}
+          KUDU_USER: ${{ steps.kudu.outputs.kudu_user }}
+          KUDU_PWD: ${{ steps.kudu.outputs.kudu_pwd }}
+        run: |
           echo "Deploying to: $KUDU_URL"
           curl -fSL -u "$KUDU_USER:$KUDU_PWD" \
             -H "Content-Type: application/zip" \
