@@ -44,21 +44,52 @@ jobs:
           name: app-zip
           path: app.zip
 
-      - name: Azure login (publish profile)
-        uses: azure/login@v2
-        with:
-          publish-profile: ${{ secrets.AZURE_STAGING_PUBLISH_PROFILE }}
-
       - name: Check package exists
         run: ls -lh app.zip
 
-      - name: Deploy with Azure CLI
+      - name: Deploy to staging via Kudu ZipDeploy (publish profile)
+        env:
+          PUBLISH_XML: ${{ secrets.AZURE_STAGING_PUBLISH_PROFILE }}
         run: |
-          az webapp deploy \
-            --resource-group playground-rg-central \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --slot ${{ env.AZURE_WEBAPP_SLOT }} \
-            --src-path app.zip
+          python3 - <<'PY'
+          import os, re, sys, xml.etree.ElementTree as ET
+          xml = os.environ['PUBLISH_XML']
+          root = ET.fromstring(xml)
+          # Pick the ZipDeploy profile from the staging slot secret
+          prof = next(p for p in root.iter('publishProfile') if p.get('publishMethod')=='ZipDeploy')
+          url = prof.get('publishUrl')
+          user = prof.get('userName')
+          pwd = prof.get('userPWD')
+          host = re.sub(r':443$', '', url)
+          kudu = f"https://{host}/api/zipdeploy?isAsync=true"
+          # write out env for bash to read
+          print(f"KUDU_URL={kudu}")
+          print(f"KUDU_USER={user}")
+          print(f"KUDU_PWD={pwd}")
+          PY
+          # Export variables from python stdout
+          eval $(python3 - <<'PY'
+          import os, re, sys, xml.etree.ElementTree as ET
+          xml = os.environ['PUBLISH_XML']
+          root = ET.fromstring(xml)
+          prof = next(p for p in root.iter('publishProfile') if p.get('publishMethod')=='ZipDeploy')
+          url = prof.get('publishUrl')
+          user = prof.get('userName')
+          pwd = prof.get('userPWD')
+          host = re.sub(r':443$', '', url)
+          kudu = f"https://{host}/api/zipdeploy?isAsync=true"
+          print(f"echo KUDU_URL={kudu}")
+          print(f"echo KUDU_USER={user}")
+          print(f"echo KUDU_PWD={pwd}")
+          print(f"export KUDU_URL='{kudu}'")
+          print(f"export KUDU_USER='{user}'")
+          print(f"export KUDU_PWD='{pwd}'")
+          PY)
+          # Deploy the zip using basic auth against Kudu
+          curl -fSL -u "$KUDU_USER:$KUDU_PWD" \
+            -H "Content-Type: application/zip" \
+            --data-binary @app.zip \
+            "$KUDU_URL"
 
       - name: Smoke test (health)
         run: |
