@@ -35,7 +35,7 @@ jobs:
       - name: Package app
         run: |
           cd webapp
-          zip -r ../app.zip . -x ".git/*"
+          zip -r ../app.zip * -x ".git/*"
           ls -lh ../app.zip
 
       - name: Upload artifact
