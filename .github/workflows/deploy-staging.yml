@@ -35,7 +35,7 @@ jobs:
       - name: Package app
         run: |
           cd webapp
-          zip -r ../app.zip * -x ".git/*"
+          zip -r ../app.zip . -x ".git/*" "node_modules/*"
           ls -lh ../app.zip
 
       - name: Upload artifact
@@ -76,33 +76,10 @@ jobs:
           KUDU_PWD: ${{ steps.kudu.outputs.kudu_pwd }}
         run: |
           echo "Deploying to: $KUDU_URL"
-          curl -fsSL -u "$KUDU_USER:$KUDU_PWD" \
+          curl -fSL -u "$KUDU_USER:$KUDU_PWD" \
             -H "Content-Type: application/zip" \
             --data-binary @app.zip \
             "$KUDU_URL"
-
-      - name: Inspect wwwroot (list)
-        env:
-          APPNAME: ${{ env.AZURE_WEBAPP_NAME }}
-          KUDU_USER: ${{ steps.kudu.outputs.kudu_user }}
-          KUDU_PWD:  ${{ steps.kudu.outputs.kudu_pwd }}
-        run: |
-          echo "Listing wwwroot on staging"
-          curl -fsSL -u "$KUDU_USER:$KUDU_PWD" \
-            "https://$APPNAME-staging.scm.azurewebsites.net/api/vfs/site/wwwroot/" | jq .
-
-      - name: Inspect package.json and server file
-        env:
-          APPNAME: ${{ env.AZURE_WEBAPP_NAME }}
-          KUDU_USER: ${{ steps.kudu.outputs.kudu_user }}
-          KUDU_PWD:  ${{ steps.kudu.outputs.kudu_pwd }}
-        run: |
-          echo '--- package.json ---'
-          curl -fsSL -u "$KUDU_USER:$KUDU_PWD" \
-            "https://$APPNAME-staging.scm.azurewebsites.net/api/vfs/site/wwwroot/package.json" | sed -n '1,160p'
-          echo \n'--- webappserver.js (first 160 lines) ---'
-          curl -fsSL -u "$KUDU_USER:$KUDU_PWD" \
-            "https://$APPNAME-staging.scm.azurewebsites.net/api/vfs/site/wwwroot/webappserver.js" | sed -n '1,160p'
 
       - name: Smoke test (health)
         run: |
@@ -110,4 +87,4 @@ jobs:
 
       - name: Smoke test (/)
         run: |
-          curl -fsS "https://${{ env.AZURE_WEBAPP_NAME }}-${{ env.AZURE_WEBAPP_SLOT }}.azurewebsites.net/" | jq .</file>
+          curl -fsS "https://${{ env.AZURE_WEBAPP_NAME }}-${{ env.AZURE_WEBAPP_SLOT }}.azurewebsites.net/" | jq .
