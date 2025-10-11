@@ -1,0 +1,40 @@
+name: Swap staging to production
+
+on:
+  workflow_dispatch: {}   # run it manually from the Actions tab
+
+env:
+  RG: playground-rg-central
+  APP: playground-web-dev-wiehcnax
+  STAGING_SLOT: staging
+
+jobs:
+  swap:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: prod-slot-swap
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout (for context only)
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Swap staging → production
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az webapp deployment slot swap \
+              --resource-group "$RG" \
+              --name "$APP" \
+              --slot "$STAGING_SLOT" \
+              --target-slot production
+
+      - name: Smoke test production
+        run: |
+          curl -fsS "https://${{ env.APP }}.azurewebsites.net/health"
+          curl -fsS "https://${{ env.APP }}.azurewebsites.net/" | jq .
